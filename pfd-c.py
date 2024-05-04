@@ -10,63 +10,77 @@ def parse_line(line, indent_level):
     command = tokens[0]
     indent = "    " * indent_level  # 4 spaces per indent level
 
-    if command == "store":
-        expression = " ".join(tokens[1:tokens.index("in")]).replace("call ", "")
-        var_names = tokens[tokens.index("in") + 1]
-        # Handle unpacking syntax
-        if "," in var_names:
-            var_list = var_names.split(",")
-            return f'{indent}{", ".join(var_list)} = {expression}', indent_level
+    try:
+        if command == "store":
+            expression = " ".join(tokens[1:tokens.index("in")]).replace("call ", "")
+            var_names = tokens[tokens.index("in") + 1]
+            # Handle unpacking syntax
+            if "," in var_names:
+                var_list = var_names.split(",")
+                return f'{indent}{", ".join(var_list)} = {expression}', indent_level
+            else:
+                return f'{indent}{var_names} = {expression}', indent_level
+        elif command == "print":
+            message = " ".join(tokens[1:]).replace("call ", "")
+            return f'{indent}print({message})', indent_level
+        elif command == "return":
+            expression = " ".join(tokens[1:]).replace("call ", "")
+            return f'{indent}return {expression}', indent_level
+        elif command == "call":
+            func_call = " ".join(tokens[1:])
+            if func_call.endswith(")"):
+                return f'{indent}{func_call}', indent_level
+            else:
+                return f'{indent}{func_call}()', indent_level
+        elif command == "if":
+            condition = " ".join(tokens[1:tokens.index("then")]).replace("is like", "==")
+            return f'{indent}if {condition}:', indent_level + 1
+        elif command == "else":
+            if tokens[1] == "then":
+                return f'{indent}else:', indent_level + 1
+            else:
+                return f"{indent}else:  # Error: Expected 'then' after 'else'", indent_level
+        elif command == "elseif":
+            condition = " ".join(tokens[1:tokens.index("then")]).replace("is like", "==")
+            return f'{indent}elif {condition}:', indent_level + 1
+        elif command == "for":
+            var = tokens[1]
+            if "up to" in line:
+                stop = line.split("up to")[1].strip()
+                return f'{indent}for {var} in range({stop}):', indent_level + 1
+            elif "from" in line and "to" in line:
+                parts = line.split()
+                start = parts[parts.index("from") + 1]
+                stop = parts[parts.index("to") + 1]
+                return f'{indent}for {var} in range({start}, {stop}):', indent_level + 1
+        elif command == "while":
+            condition = " ".join(tokens[1:])
+            return f'{indent}while {condition}:', indent_level + 1
+        elif command == "function":
+            func_name = tokens[1]
+            args_index = tokens.index("args")
+            args = " ".join(tokens[args_index + 1:])
+            return f'{indent}def {func_name}({args}):', indent_level + 1
+        elif command == "try":
+            return f'{indent}try:', indent_level + 1
+        elif command == "except":
+            exception = tokens[1]
+            return f'{indent}except {exception}:', indent_level + 1
+        elif command == "import":
+            module = tokens[1]
+            return f'{indent}import {module}', indent_level
+        elif command == "end":
+            return "", indent_level - 1
         else:
-            return f'{indent}{var_names} = {expression}', indent_level
-    elif command == "print":
-        message = " ".join(tokens[1:]).replace("call ", "")
-        return f'{indent}print({message})', indent_level
-    elif command == "return":
-        expression = " ".join(tokens[1:]).replace("call ", "")
-        return f'{indent}return {expression}', indent_level
-    elif command == "call":
-        func_call = " ".join(tokens[1:])
-        if func_call.endswith(")"):
-            return f'{indent}{func_call}', indent_level
-        else:
-            return f'{indent}{func_call}()', indent_level
-    elif command == "if":
-        condition = " ".join(tokens[1:tokens.index("then")]).replace("is like", "==")
-        return f'{indent}if {condition}:', indent_level + 1
-    elif command == "else":
-        return f'{indent}else:', indent_level + 1
-    elif command == "for":
-        var = tokens[1]
-        if "up to" in line:
-            stop = line.split("up to")[1].strip()
-            return f'{indent}for {var} in range({stop}):', indent_level + 1
-        elif "from" in line and "to" in line:
-            parts = line.split()
-            start = parts[parts.index("from") + 1]
-            stop = parts[parts.index("to") + 1]
-            return f'{indent}for {var} in range({start}, {stop}):', indent_level + 1
-    elif command == "while":
-        condition = " ".join(tokens[1:])
-        return f'{indent}while {condition}:', indent_level + 1
-    elif command == "function":
-        func_name = tokens[1]
-        args_index = tokens.index("args")
-        args = " ".join(tokens[args_index + 1:])
-        return f'{indent}def {func_name}({args}):', indent_level + 1
-    elif command == "try":
-        return f'{indent}try:', indent_level + 1
-    elif command == "except":
-        exception = tokens[1]
-        return f'{indent}catch {exception}:', indent_level + 1
-    elif command == "import":
-        module = tokens[1]
-        return f'{indent}import {module}', indent_level
-    elif command == "end":
-        return "", indent_level - 1
-    else:
-        # Handle not directly translatable code by inserting it as is
-        return f"{indent}{line}", indent_level
+            # Handle not directly translatable code by inserting it as is
+            return f"{indent}{line}", indent_level
+    except IndexError as e:
+        return f"{indent}# Error: Malformed line - {str(e)}", indent_level
+    except SyntaxError as e:
+        return f"{indent}# Error: {str(e)}", indent_level
+    except Exception as e:
+        return f"{indent}# Error: Unexpected error - {str(e)}", indent_level
+    
 
 def translate_to_python(custom_code):
     python_code = []
