@@ -12,8 +12,8 @@ def parse_line(line, indent_level):
 
     try:
         if command == "store":
-            expression = " ".join(tokens[1:tokens.index("in")]).replace("call ", "")
-            var_names = tokens[tokens.index("in") + 1]
+            expression = " ".join(tokens[1:tokens.index("into")]).replace("call ", "")
+            var_names = tokens[tokens.index("into") + 1]
             # Handle unpacking syntax
             if "," in var_names:
                 var_list = var_names.split(",")
